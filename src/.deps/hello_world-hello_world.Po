@@ -29,7 +29,22 @@ hello_world-hello_world.o: hello_world.c /usr/include/stdc-predef.h \
  /usr/include/asm-generic/sockios.h /usr/include/bits/socket2.h \
  /usr/include/arpa/inet.h /usr/include/netinet/in.h \
  /usr/lib/gcc/x86_64-pc-linux-gnu/4.8.4/include/stdint.h \
- /usr/include/stdint.h /usr/include/bits/wchar.h /usr/include/bits/in.h
+ /usr/include/stdint.h /usr/include/bits/wchar.h /usr/include/bits/in.h \
+ /usr/include/modbus/modbus-tcp.h /usr/include/modbus/modbus.h \
+ /usr/include/sys/param.h \
+ /usr/lib/gcc/x86_64-pc-linux-gnu/4.8.4/include-fixed/limits.h \
+ /usr/lib/gcc/x86_64-pc-linux-gnu/4.8.4/include-fixed/syslimits.h \
+ /usr/include/limits.h /usr/include/bits/posix1_lim.h \
+ /usr/include/bits/local_lim.h /usr/include/linux/limits.h \
+ /usr/include/bits/posix2_lim.h /usr/include/signal.h \
+ /usr/include/bits/signum.h /usr/include/bits/siginfo.h \
+ /usr/include/bits/sigaction.h /usr/include/bits/sigcontext.h \
+ /usr/include/bits/sigstack.h /usr/include/sys/ucontext.h \
+ /usr/include/bits/sigthread.h /usr/include/bits/param.h \
+ /usr/include/linux/param.h /usr/include/asm/param.h \
+ /usr/include/asm-generic/param.h /usr/include/sys/time.h \
+ /usr/include/modbus/modbus-version.h /usr/include/modbus/modbus-tcp.h \
+ /usr/include/modbus/modbus-rtu.h
 
 /usr/include/stdc-predef.h:
 
@@ -160,3 +175,55 @@ hello_world-hello_world.o: hello_world.c /usr/include/stdc-predef.h \
 /usr/include/bits/wchar.h:
 
 /usr/include/bits/in.h:
+
+/usr/include/modbus/modbus-tcp.h:
+
+/usr/include/modbus/modbus.h:
+
+/usr/include/sys/param.h:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/4.8.4/include-fixed/limits.h:
+
+/usr/lib/gcc/x86_64-pc-linux-gnu/4.8.4/include-fixed/syslimits.h:
+
+/usr/include/limits.h:
+
+/usr/include/bits/posix1_lim.h:
+
+/usr/include/bits/local_lim.h:
+
+/usr/include/linux/limits.h:
+
+/usr/include/bits/posix2_lim.h:
+
+/usr/include/signal.h:
+
+/usr/include/bits/signum.h:
+
+/usr/include/bits/siginfo.h:
+
+/usr/include/bits/sigaction.h:
+
+/usr/include/bits/sigcontext.h:
+
+/usr/include/bits/sigstack.h:
+
+/usr/include/sys/ucontext.h:
+
+/usr/include/bits/sigthread.h:
+
+/usr/include/bits/param.h:
+
+/usr/include/linux/param.h:
+
+/usr/include/asm/param.h:
+
+/usr/include/asm-generic/param.h:
+
+/usr/include/sys/time.h:
+
+/usr/include/modbus/modbus-version.h:
+
+/usr/include/modbus/modbus-tcp.h:
+
+/usr/include/modbus/modbus-rtu.h:

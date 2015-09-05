@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <modbus-tcp.h>
 #define SERVER_ADDR "127.0.0.1"
 #define SERVER_PORT 10000
 #define DATA_LENGTH 256
