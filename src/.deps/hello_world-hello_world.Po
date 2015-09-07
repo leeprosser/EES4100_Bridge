@@ -44,7 +44,10 @@ hello_world-hello_world.o: hello_world.c /usr/include/stdc-predef.h \
  /usr/include/linux/param.h /usr/include/asm/param.h \
  /usr/include/asm-generic/param.h /usr/include/sys/time.h \
  /usr/include/modbus/modbus-version.h /usr/include/modbus/modbus-tcp.h \
- /usr/include/modbus/modbus-rtu.h
+ /usr/include/modbus/modbus-rtu.h /usr/include/errno.h \
+ /usr/include/bits/errno.h /usr/include/linux/errno.h \
+ /usr/include/asm/errno.h /usr/include/asm-generic/errno.h \
+ /usr/include/asm-generic/errno-base.h
 
 /usr/include/stdc-predef.h:
 
@@ -227,3 +230,15 @@ hello_world-hello_world.o: hello_world.c /usr/include/stdc-predef.h \
 /usr/include/modbus/modbus-tcp.h:
 
 /usr/include/modbus/modbus-rtu.h:
+
+/usr/include/errno.h:
+
+/usr/include/bits/errno.h:
+
+/usr/include/linux/errno.h:
+
+/usr/include/asm/errno.h:
+
+/usr/include/asm-generic/errno.h:
+
+/usr/include/asm-generic/errno-base.h:
