@@ -18,37 +18,37 @@ int errno;
 int i;
 int rc;
 int main(int argc, char *arg[])
-{
-while(1){modb();}
-}
+	{
+	while(1){modb();}
+	}
   
 int modb(void)
-{
-modbus_t *ctx;
-sleep(1);
-ctx = modbus_new_tcp("140.159.153.159", 502);
-if (modbus_connect(ctx) == -1) 
-   {
-   fprintf(stderr, "Connection failed: %s\n", modbus_strerror(errno));
-   modbus_free(ctx);
-   return -1;
-   }
-printf("conection not failed\n");
-rc = modbus_read_registers(ctx, 0, 3, tab_reg);
-if (rc == -1) 
-  {
-  if (EMBMDATA==1){printf("too many requests\n");}
-  printf("not able to read register\n");
-  fprintf(stderr, "%s\n", modbus_strerror(errno));
-  return -1;
-  }
-for (i=0; i < rc; i++) 
-  {
-  printf("reg[%d]=%d (0x%X)\n", i, tab_reg[i], tab_reg[i]);
-  }
-modbus_close(ctx);
-modbus_free(ctx);
-}
+	{
+	modbus_t *ctx;
+	sleep(1);
+	ctx = modbus_new_tcp("140.159.153.159", 502);
+	if (modbus_connect(ctx) == -1) 
+   		{
+   		fprintf(stderr, "Connection failed: %s\n", modbus_strerror(errno));
+   		modbus_free(ctx);
+   		return -1;
+   		}
+	printf("conection not failed\n");
+	rc = modbus_read_registers(ctx, 0, 3, tab_reg);
+	if (rc == -1) 
+  		{
+  		if (EMBMDATA==1){printf("too many requests\n");}
+  		printf("not able to read register\n");
+  		fprintf(stderr, "%s\n", modbus_strerror(errno));
+  		return -1;
+  		}
+	for (i=0; i < rc; i++) 
+  		{
+  		printf("reg[%d]=%d (0x%X)\n", i, tab_reg[i], tab_reg[i]);
+  		}
+	modbus_close(ctx);
+	modbus_free(ctx);
+	}
 
 /*  ALL CODE BELOW IS FOR FUTURE CONFIGURATION   */
 
