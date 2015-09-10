@@ -46,7 +46,7 @@ int rc;
 int modb(void){
 modbus_t *ctx;
 sleep(1);
-ctx = modbus_new_tcp("140.159.153.159", 502);
+ctx = modbus_new_tcp("127.0.0.1", 1502);
 if (modbus_connect(ctx) == -1){
 fprintf(stderr, "Connection failed: %s\n", modbus_strerror(errno));
 modbus_free(ctx);
@@ -131,7 +131,7 @@ pthread_mutex_unlock(&list_lock);
 
 /* printf() and free() can block, make sure that we've released
  * * * list_lock first */
-printf("Print thread: %s\n", current_object->word);
+printf("Printing thread: %s\n", current_object->word);
 free(current_object->word);
 free(current_object);
 /* Let list_flush() know that we've done some work */
@@ -225,6 +225,7 @@ if (!--count) break;
 
 int main(int argc, char **argv) {
 printf("hi there\n");
+//modb();
 while(1){modb();}
 printf("working ok\n");
 int c;
