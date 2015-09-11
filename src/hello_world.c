@@ -46,13 +46,13 @@ int rc;
 int modb(void){
 modbus_t *ctx;
 sleep(1);
-ctx = modbus_new_tcp("127.0.0.1", 1502);
+ctx = modbus_new_tcp("127.0.0.1", 0xBAC0);
 if (modbus_connect(ctx) == -1){
 fprintf(stderr, "Connection failed: %s\n", modbus_strerror(errno));
 modbus_free(ctx);
 return -1;
 }
-printf("conection not failed\n");
+printf("connect not failed\n");
 rc = modbus_read_registers(ctx, 0, 3, tab_reg);
 if (rc == -1){
 if (EMBMDATA==1){printf("too many requests\n");}
