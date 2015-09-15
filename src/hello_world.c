@@ -42,7 +42,7 @@
 #include <libbacnet/txbuf.h>
 #include <libbacnet/tsm.h>
 #include <libbacnet/ai.h>
-//#include "bacnet_namespace.h"  will not compile with this
+#include "bacnet_namespace.h" 
 #include <errno.h>
 #include <unistd.h>
 
@@ -62,7 +62,7 @@ int modb(void){
 	sleep(1);
 	ctx = modbus_new_tcp("127.0.0.1", 0xBAC0);
 	if (modbus_connect(ctx) == -1){
-		fprintf(stderr, "Connection failed: %s\n", modbus_strerror(errno));
+		fprintf(stderr, "Connections failed: %s\n", modbus_strerror(errno));
 		modbus_free(ctx);
 		return -1;
 	}
