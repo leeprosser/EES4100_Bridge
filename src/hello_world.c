@@ -24,64 +24,64 @@
  ** * 
  ** */
 
- #include <stdio.h>
- #include <modbus-tcp.h>
- #include <libbacnet/address.h>
- #include <libbacnet/device.h>
- #include <libbacnet/handlers.h>
- #include <libbacnet/datalink.h>
- #include <libbacnet/bvlc.h>
- #include <libbacnet/client.h>
- #include <libbacnet/txbuf.h>
- #include <libbacnet/tsm.h>
- #include <libbacnet/ai.h>
- #include "bacnet_namespace.h"
- #include <modbus-tcp.h>
- #include <errno.h>
- #include <stdio.h>
- #include <stdlib.h>
- #include <unistd.h>
- #include <pthread.h>
- #include <string.h>
- #include <modbus-tcp.h>
+#include <stdio.h>
+#include <modbus-tcp.h>
+#include <libbacnet/address.h>
+#include <libbacnet/device.h>
+#include <libbacnet/handlers.h>
+#include <libbacnet/datalink.h>
+#include <libbacnet/bvlc.h>
+#include <libbacnet/client.h>
+#include <libbacnet/txbuf.h>
+#include <libbacnet/tsm.h>
+#include <libbacnet/ai.h>
+#include "bacnet_namespace.h"
+#include <modbus-tcp.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <string.h>
+#include <modbus-tcp.h>
 
- #define BACNET_INSTANCE_NO          120
- #define BACNET_PORT                 0xBAC1
- #define BACNET_INTERFACE            "lo"
- #define BACNET_DATALINK_TYPE        "bvlc"
- #define BACNET_SELECT_TIMEOUT_MS    1       /* ms */
+#define BACNET_INSTANCE_NO          120
+#define BACNET_PORT                 0xBAC1
+#define BACNET_INTERFACE            "lo"
+#define BACNET_DATALINK_TYPE        "bvlc"
+#define BACNET_SELECT_TIMEOUT_MS    1       /* ms */
 
- #define RUN_AS_BBMD_CLIENT          1
+#define RUN_AS_BBMD_CLIENT          1
 
- #if RUN_AS_BBMD_CLIENT
- #define BACNET_BBMD_PORT            0xBAC0      //BBMD broadcast management device
- #define BACNET_BBMD_ADDRESS         "127.255.255.255"
- #define BACNET_BBMD_TTL             90          //BBMD broadcast management device time to live
- #endif
+#if RUN_AS_BBMD_CLIENT
+#define BACNET_BBMD_PORT            0xBAC0      //BBMD broadcast management device
+#define BACNET_BBMD_ADDRESS         "127.255.255.255"
+#define BACNET_BBMD_TTL             90          //BBMD broadcast management device time to live
+#endif
 
- int16_t holding;
- int16_t tab_reg[64];
- int errno;
- int i;
- int rc;
+int16_t holding; // the variable that is passed from the thread 
+int16_t tab_reg[64];
+int errno;
+int i;
+int rc;
 
- typedef struct s_word_object word_object;
- struct s_word_object {
+typedef struct s_word_object word_object;
+struct s_word_object {
  // was ok int16_t *word;
   	int16_t word;
  	word_object *next;
- };
+};
  
  
   /* list_head: Shared between two threads, must be accessed with list_lock */
  
- static word_object *list_head;
- static pthread_mutex_t list_lock = PTHREAD_MUTEX_INITIALIZER;
- static pthread_cond_t list_data_ready = PTHREAD_COND_INITIALIZER;
- static pthread_cond_t list_data_flush = PTHREAD_COND_INITIALIZER;
- 
- static void add_to_list(int16_t word) {
- 	word_object *last_object, *tmp_object;
+static word_object *list_head;
+static pthread_mutex_t list_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t list_data_ready = PTHREAD_COND_INITIALIZER;
+static pthread_cond_t list_data_flush = PTHREAD_COND_INITIALIZER;
+
+static void add_to_list(int16_t word) {
+	word_object *last_object, *tmp_object;
  	//word_object last_object, tmp_object;
  	int16_t tmp_string;
  	tmp_object = malloc(sizeof(word_object));
@@ -124,14 +124,14 @@ static void *print_func(void *arg) {
 		current_object = list_get_first();
 		pthread_mutex_unlock(&list_lock);
 		printf("Print thread: %d\n", current_object->word);
-		holding =  current_object->word;
-		printf("holding in function %d\n" , holding);
+		holding =  current_object->word;  // the thread is passed to bacnet server via 'holding' variable
+		printf("holding in function %d\n" , holding); // for diagnostics
 		free(current_object);
 		printf("in thread %d\n",i);
 		pthread_cond_signal(&list_data_flush);
 		break;
 	}
-	printf("in thread\n");
+	printf("in thread\n"); //for diagnostics
 	//return arg;
 }
 
@@ -144,11 +144,11 @@ static void list_flush(void) {
 	pthread_mutex_unlock(&list_lock);
 }
 #define INC_TIMER(reset, func)  \
-do {                    \
-if (!--timer) { \
-timer = reset;      \
-func();             \
-}                       \
+do {                            \
+if (!--timer) {                 \
+timer = reset;                  \
+func();                         \
+}                               \
 } while (0)
 
 static bacnet_object_functions_t server_objects[] = {
@@ -267,8 +267,8 @@ static void second_tick(void) {
 static void ms_tick(void) {
         static int timer = MS_PER_SECOND;
  /* Updates change of value COV subscribers.
-*          *      * Required for SERVICE_CONFIRMED_SUBSCRIBE_COV
-*                   *           * bacnet_handler_cov_task(); */
+*** Required for SERVICE_CONFIRMED_SUBSCRIBE_COV
+*** bacnet_handler_cov_task(); */
         INC_TIMER(MS_PER_SECOND, second_tick);
 }
 
@@ -282,7 +282,7 @@ SERVICE_CONFIRMED_##service,        \
 bacnet_handler_##handler)
 
 int main(int argc, char **argv) {
-        printf("in function main\n");
+        printf("in function main\n"); //for diagnostics
 	char input_word[256];
 	int c;
 	int option_index = 0;
@@ -333,7 +333,7 @@ int main(int argc, char **argv) {
 		add_to_list(tab_reg[1]);
 
 		pthread_create(&print_thread, NULL, print_func, NULL);
-		bacnet_Analog_Input_Present_Value_Set(0, holding);
+		bacnet_Analog_Input_Present_Value_Set(0, holding); //from thread list
                 add_to_list(tab_reg[0]);
                 pthread_create(&print_thread, NULL, print_func, NULL);
                 bacnet_Analog_Input_Present_Value_Set(0, holding);
