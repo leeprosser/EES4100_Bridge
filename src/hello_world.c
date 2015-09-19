@@ -190,7 +190,7 @@ int16_t tab_reg[64];
 int errno;
 int i;
 int rc;
-int modb(void){
+/*int modb(void){
 	printf("in function modbus\n");
 	modbus_t *ctx;
 	sleep(1);
@@ -209,13 +209,14 @@ int modb(void){
 		return -1;
 	}
 	for (i=0; i < rc; i++){
+		printf("rc = %d\n",rc);
 		printf("reg[%d]=%d (0x%X)\n", i, tab_reg[i], tab_reg[i]);
 	}
 	fflush(stdout);
 	modbus_close(ctx);
 	modbus_free(ctx);
 }
-
+*/
 static void register_with_bbmd(void) {
 	#if RUN_AS_BBMD_CLIENT
 	bacnet_bvlc_register_with_bbmd(
@@ -322,29 +323,68 @@ int main(int argc, char **argv) {
 	register_with_bbmd();
 	bacnet_Send_I_Am(&bacnet_Handler_Transmit_Buffer[0]);
 	//      while(1){modb();sleep(5); break;}
-	bacnet_Analog_Input_Present_Value_Set(0, holding);
+	//bacnet_Analog_Input_Present_Value_Set(0, holding);
 	printf("before while ever func main\n");
+	
+	 
 	while (1) {
-		pdu_len = bacnet_datalink_receive(
-		&src, rx_buf, bacnet_MAX_MPDU, BACNET_SELECT_TIMEOUT_MS);
-		if (pdu_len) bacnet_npdu_handler(&src, rx_buf, pdu_len);
-		ms_tick();
-		modb();
-		add_to_list(tab_reg[1]);
 
-		pthread_create(&print_thread, NULL, print_func, NULL);
-		bacnet_Analog_Input_Present_Value_Set(0, holding); //from thread list
-                add_to_list(tab_reg[0]);
-                pthread_create(&print_thread, NULL, print_func, NULL);
-                bacnet_Analog_Input_Present_Value_Set(0, holding);
-                printf("holding %d\n", holding);
-                 //****    causing the program to stop!!!   list_flush();
-                //add_to_list(tab_reg[0]);
-               //add_to_list(tab_reg[0]);
-                printf("after list flush\n");
-                //add_to_list(tab_reg[1]);
-                //add_to_list(tab_reg[2]);
-        }
+        	printf("in function modbus\n");
+		modbus_t *ctx;
+		sleep(1);
+		ctx = modbus_new_tcp("127.0.0.1", 0xBAC0);
+		if (modbus_connect(ctx) == -1){
+			fprintf(stderr, "Connection failed: %s\n", modbus_strerror(errno));
+			modbus_free(ctx);
+			return -1;
+	  	}
+	 	printf("conection not failed\n");
+		rc = modbus_read_registers(ctx, 0, 3, tab_reg);
+		if (rc == -1){
+			if (EMBMDATA==1){printf("too many requests\n");}
+			printf("not able to read register\n");
+			fprintf(stderr, "%s\n", modbus_strerror(errno));
+			return -1;
+		}
+		for (i=0; i < rc; i++){
+			printf("rc = %d\n",rc);
+			printf("reg[%d]=%d (0x%X)\n", i, tab_reg[i], tab_reg[i]);
+	 		add_to_list(tab_reg[i]);
+	  
+	 	
+			//fflush(stdout);
+			//modbus_close(ctx);
+			//modbus_free(ctx);
+
+			pdu_len = bacnet_datalink_receive(
+			&src, rx_buf, bacnet_MAX_MPDU, BACNET_SELECT_TIMEOUT_MS);
+			if (pdu_len) bacnet_npdu_handler(&src, rx_buf, pdu_len);
+			ms_tick();
+//			modb();
+			printf("register number %d\n",i);
+			//add_to_list(tab_reg[1]);
+			printf("holding before bacnet number %d\n",holding);
+			pthread_create(&print_thread, NULL, print_func, NULL);
+			printf("holding before bacnet number B  %d\n",holding);
+			bacnet_Analog_Input_Present_Value_Set(0, holding); //from thread list
+                	
+			//add_to_list(tab_reg[0]);
+          	//      pthread_create(&print_thread, NULL, print_func, NULL);
+          	//      bacnet_Analog_Input_Present_Value_Set(0, holding);
+                	printf("holding %d\n", holding);
+                 	//****    causing the program to stop!!!  
+			list_flush();
+                	//add_to_list(tab_reg[0]);
+               		//add_to_list(tab_reg[0]);
+                	printf("after list flush\n");
+                	//add_to_list(tab_reg[1]);
+                	//add_to_list(tab_reg[2]);
+        	}
+		fflush(stdout);
+		modbus_close(ctx);
+		modbus_free(ctx);
+
+	}
         return 0;
 }
 
