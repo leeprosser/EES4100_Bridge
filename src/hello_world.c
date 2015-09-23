@@ -327,9 +327,29 @@ int main(int argc, char **argv) {
 	printf("before while ever func main\n");
 	
 	 
+
+	printf("in function modbus\n");
+	modbus_t *ctx;
+	sleep(1);
+	ctx = modbus_new_tcp("127.0.0.1", 0xBAC0);
+	if (modbus_connect(ctx) == -1){
+		fprintf(stderr, "Connection failed: %s\n", modbus_strerror(errno));
+		modbus_free(ctx);
+		return -1;
+	}
+	printf("conection not failed\n");
+	rc = modbus_read_registers(ctx, 0, 3, tab_reg);
+	if (rc == -1){
+		if (EMBMDATA==1){printf("too many requests\n");}
+		printf("not able to read register\n");
+		fprintf(stderr, "%s\n", modbus_strerror(errno));
+		return -1;
+	}
+
+
 	while (1) {
 
-        	printf("in function modbus\n");
+        /*	printf("in function modbus\n");
 		modbus_t *ctx;
 		sleep(1);
 		ctx = modbus_new_tcp("127.0.0.1", 0xBAC0);
@@ -345,7 +365,9 @@ int main(int argc, char **argv) {
 			printf("not able to read register\n");
 			fprintf(stderr, "%s\n", modbus_strerror(errno));
 			return -1;
-		}
+		}*/
+		rc = modbus_read_registers(ctx, 0, 3, tab_reg);
+
 		for (i=0; i < rc; i++){
 			printf("rc = %d\n",rc);
 			printf("reg[%d]=%d (0x%X)\n", i, tab_reg[i], tab_reg[i]);
@@ -354,7 +376,7 @@ int main(int argc, char **argv) {
 	 	
 			//fflush(stdout);
 			//modbus_close(ctx);
-			//modbus_free(ctx);
+			//modbus_free(ctx);                    
 
 			pdu_len = bacnet_datalink_receive(
 			&src, rx_buf, bacnet_MAX_MPDU, BACNET_SELECT_TIMEOUT_MS);
@@ -367,7 +389,8 @@ int main(int argc, char **argv) {
 			pthread_create(&print_thread, NULL, print_func, NULL);
 			printf("holding before bacnet number B  %d\n",holding);
 			bacnet_Analog_Input_Present_Value_Set(0, holding); //from thread list
-                	
+                	bacnet_Analog_Input_Present_Value_Set(1, 2.1); 
+		//	bacnet_Analog_Input_Present_Value_Set(2, holding); 
 			//add_to_list(tab_reg[0]);
           	//      pthread_create(&print_thread, NULL, print_func, NULL);
           	//      bacnet_Analog_Input_Present_Value_Set(0, holding);
@@ -381,8 +404,8 @@ int main(int argc, char **argv) {
                 	//add_to_list(tab_reg[2]);
         	}
 		fflush(stdout);
-		modbus_close(ctx);
-		modbus_free(ctx);
+	//	modbus_close(ctx);
+	//	modbus_free(ctx);
 
 	}
         return 0;
