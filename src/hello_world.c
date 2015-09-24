@@ -61,7 +61,7 @@
 
 int16_t holding; // the variable that is passed from the thread 
 //int16_t tab_reg[64]; // was used in modbus testbench
-static uint16_t tab_reg[] = {};
+static uint16_t tab_reg[3] = {};
 int errno;
 int i;
 int rc;
@@ -131,7 +131,7 @@ static void *print_func(void *arg) {
 		free(current_object);
 		printf("in thread %d\n",i);
 		pthread_cond_signal(&list_data_flush);
-		break;
+		//break;
 	}
 	printf("in thread\n"); //for diagnostics
 	//return arg;
@@ -335,8 +335,8 @@ int main(int argc, char **argv) {
 	printf("in function modbus\n");
 	modbus_t *ctx;
 	//sleep(.1);
-	ctx = modbus_new_tcp("140.159.153.159", MODBUS_TCP_DEFAULT_PORT); //using VU modbus
-	//ctx = modbus_new_tcp("127.0.0.1", MODBUS_TCP_DEFAULT_PORT);
+	//ctx = modbus_new_tcp("140.159.153.159", MODBUS_TCP_DEFAULT_PORT); //using VU modbus
+	ctx = modbus_new_tcp("127.0.0.1", MODBUS_TCP_DEFAULT_PORT);
 	//ctx = modbus_new_tcp("127.0.0.1", 0xBAC0); //using testbench modbus
 	if (modbus_connect(ctx) == -1){
 		fprintf(stderr, "Connection failed: %s\n", modbus_strerror(errno));
@@ -344,7 +344,7 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 	printf("conection not failed\n");
-	rc = modbus_read_registers(ctx, 0, 33, tab_reg);
+	//rc = modbus_read_registers(ctx, 0, 33, tab_reg);
 	//rc = modbus_read_registers(ctx, 0, 3, tab_reg); // was used for initial modbus testbench
 	if (rc == -1){
 		if (EMBMDATA==1){printf("too many requests\n");}
@@ -352,7 +352,6 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "%s\n", modbus_strerror(errno));
 		return -1;
 	}
-
 
 	while (1) {
 
@@ -373,13 +372,13 @@ int main(int argc, char **argv) {
 			fprintf(stderr, "%s\n", modbus_strerror(errno));
 			return -1;
 		}*/
-		rc = modbus_read_registers(ctx, 0, 33, tab_reg);
+		rc = modbus_read_registers(ctx, 30, 3, tab_reg);
 		//rc = modbus_read_registers(ctx, 0, 3, tab_reg); // was used for testbench modbus server
 		for (i=0; i < rc; i++){
 			sleep(1);
 			printf("rc = %d\n",rc);
 			printf("reg[%d]=%d (0x%X)\n", i, tab_reg[i], tab_reg[i]);
-	 		add_to_list(tab_reg[30]);
+	 		//add_to_list(tab_reg[30]);
 	  		//add_to_list(tab_reg[i]); // was used for testbench modbus server
 	 	
 			//fflush(stdout);
@@ -394,12 +393,12 @@ int main(int argc, char **argv) {
 			printf("register number %d\n",i);
 			//add_to_list(tab_reg[1]);
 			printf("holding before bacnet number %d\n",holding);
-			pthread_create(&print_thread, NULL, print_func, NULL);
+			//pthread_create(&print_thread, NULL, print_func, NULL);
 			printf("holding before bacnet number B  %d\n",holding);
 			bacnet_Analog_Input_Present_Value_Set(0, holding); //from thread list
                 	bacnet_Analog_Input_Present_Value_Set(1, 2.1); 
 		//	bacnet_Analog_Input_Present_Value_Set(2, holding); 
-			//add_to_list(tab_reg[0]);
+			add_to_list(tab_reg[i]);
           	//      pthread_create(&print_thread, NULL, print_func, NULL);
           	//      bacnet_Analog_Input_Present_Value_Set(0, holding);
                 	printf("holding %d\n", holding);
