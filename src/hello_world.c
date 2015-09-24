@@ -1,5 +1,5 @@
 
-/*_world.c
+/*hello_world.c
  * * Copyright (c) by Lee Prosser
  * * * Kim Taylor
  * * * Stéphane Raimbault
@@ -25,7 +25,6 @@
  ** */
 
 #include <stdio.h>
-#include <modbus-tcp.h>
 #include <libbacnet/address.h>
 #include <libbacnet/device.h>
 #include <libbacnet/handlers.h>
@@ -38,14 +37,13 @@
 #include "bacnet_namespace.h"
 #include <modbus-tcp.h>
 #include <errno.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <string.h>
-#include <modbus-tcp.h>
 
-#define BACNET_INSTANCE_NO          120
+
+#define BACNET_INSTANCE_NO          30
 #define BACNET_PORT                 0xBAC1
 #define BACNET_INTERFACE            "lo"
 #define BACNET_DATALINK_TYPE        "bvlc"
@@ -55,7 +53,8 @@
 
 #if RUN_AS_BBMD_CLIENT
 #define BACNET_BBMD_PORT            0xBAC0      //BBMD broadcast management device
-#define BACNET_BBMD_ADDRESS         "127.255.255.255"
+//#define BACNET_BBMD_ADDRESS         "127.255.255.255"
+#define BACNET_BBMD_ADDRESS         "127.0.0.1"
 #define BACNET_BBMD_TTL             90          //BBMD broadcast management device time to live
 #endif
 
@@ -68,9 +67,8 @@ int rc;
 
 typedef struct s_word_object word_object;
 struct s_word_object {
- // was ok int16_t *word;
   	int16_t word;
- 	word_object *next;
+   	word_object *next;
 };
  
  
@@ -83,7 +81,6 @@ static pthread_cond_t list_data_flush = PTHREAD_COND_INITIALIZER;
 
 static void add_to_list(int16_t word) {
 	word_object *last_object, *tmp_object;
- 	//word_object last_object, tmp_object;
  	int16_t tmp_string;
  	tmp_object = malloc(sizeof(word_object));
  	tmp_string = word;
@@ -114,7 +111,6 @@ static word_object *list_get_first(void) {
 }
 
 static void *print_func(void *arg) {
-	//static int holding;
 	word_object *current_object;
 	printf("in print func\n");
 	fprintf(stderr, "Print thr starting\n");
@@ -189,7 +185,6 @@ static bacnet_object_functions_t server_objects[] = {
 };
 
 
-//int16_t tab_reg[64]; // was used in modbus testbench
 int errno;
 int i;
 int rc;
@@ -220,6 +215,7 @@ int rc;
 	modbus_free(ctx);
 }
 */
+
 static void register_with_bbmd(void) {
 	#if RUN_AS_BBMD_CLIENT
 	bacnet_bvlc_register_with_bbmd(
@@ -292,21 +288,6 @@ int main(int argc, char **argv) {
 	int option_index = 0;
 	int count = -1;
 	pthread_t print_thread;
- /*static struct option long_options[] = {
-  * {"count", required_argument, 0, 'c'},
-  * {0, 0, 0, 0 }
-  *  };
-  * while (1) {
-  * c = getopt_long(argc, argv, "c:", long_options, &option_index);
-  *if (c == -1)
-  *break;
-  *switch (c) {
-  *case 'c':
-  *count = atoi(optarg);
-  *break;
-  * }
-  * }*/
-
 	uint8_t rx_buf[bacnet_MAX_MPDU];
         uint16_t pdu_len;
 	BACNET_ADDRESS src;
@@ -325,10 +306,7 @@ int main(int argc, char **argv) {
 	memset(&src, 0, sizeof(src));
 	register_with_bbmd();
 	bacnet_Send_I_Am(&bacnet_Handler_Transmit_Buffer[0]);
-	//      while(1){modb();sleep(5); break;}
-	//bacnet_Analog_Input_Present_Value_Set(0, holding);
 	printf("before while ever func main\n");
-	
 	pthread_create(&print_thread, NULL, print_func, NULL);
 
 
@@ -336,8 +314,8 @@ int main(int argc, char **argv) {
 	modbus_t *ctx;
 	//sleep(.1);
 	//ctx = modbus_new_tcp("140.159.153.159", MODBUS_TCP_DEFAULT_PORT); //using VU modbus
-	ctx = modbus_new_tcp("127.0.0.1", MODBUS_TCP_DEFAULT_PORT);
-	//ctx = modbus_new_tcp("127.0.0.1", 0xBAC0); //using testbench modbus
+	ctx = modbus_new_tcp("127.0.0.1", MODBUS_TCP_DEFAULT_PORT);// using testbench from home
+	//ctx = modbus_new_tcp("127.0.0.1", 0xBAC0); //old testbench
 	if (modbus_connect(ctx) == -1){
 		fprintf(stderr, "Connection failed: %s\n", modbus_strerror(errno));
 		modbus_free(ctx);
@@ -355,60 +333,35 @@ int main(int argc, char **argv) {
 
 	while (1) {
 
-        /*	printf("in function modbus\n");
-		modbus_t *ctx;
-		sleep(1);
-		ctx = modbus_new_tcp("127.0.0.1", 0xBAC0);
-		if (modbus_connect(ctx) == -1){
-			fprintf(stderr, "Connection failed: %s\n", modbus_strerror(errno));
-			modbus_free(ctx);
-			return -1;
-	  	}
-	 	printf("conection not failed\n");
-		rc = modbus_read_registers(ctx, 0, 3, tab_reg);
-		if (rc == -1){
-			if (EMBMDATA==1){printf("too many requests\n");}
-			printf("not able to read register\n");
-			fprintf(stderr, "%s\n", modbus_strerror(errno));
-			return -1;
-		}*/
-		rc = modbus_read_registers(ctx, 30, 3, tab_reg);
+    		rc = modbus_read_registers(ctx, 30, 3, tab_reg);
 		//rc = modbus_read_registers(ctx, 0, 3, tab_reg); // was used for testbench modbus server
 		for (i=0; i < rc; i++){
 			sleep(1);
 			printf("rc = %d\n",rc);
 			printf("reg[%d]=%d (0x%X)\n", i, tab_reg[i], tab_reg[i]);
-	 		//add_to_list(tab_reg[30]);
+	 		
 	  		//add_to_list(tab_reg[i]); // was used for testbench modbus server
-	 	
-			//fflush(stdout);
-			//modbus_close(ctx);
-			//modbus_free(ctx);                    
-
-			pdu_len = bacnet_datalink_receive(
+	 		
+		       	pdu_len = bacnet_datalink_receive(
 			&src, rx_buf, bacnet_MAX_MPDU, BACNET_SELECT_TIMEOUT_MS);
 			if (pdu_len) bacnet_npdu_handler(&src, rx_buf, pdu_len);
 			ms_tick();
-//			modb();
 			printf("register number %d\n",i);
 			//add_to_list(tab_reg[1]);
 			printf("holding before bacnet number %d\n",holding);
-			//pthread_create(&print_thread, NULL, print_func, NULL);
-			printf("holding before bacnet number B  %d\n",holding);
-			bacnet_Analog_Input_Present_Value_Set(0, holding); //from thread list
-                	bacnet_Analog_Input_Present_Value_Set(1, 2.1); 
+			bacnet_Analog_Input_Present_Value_Set(1, holding); //from thread list
+                	bacnet_Analog_Input_Present_Value_Set(2, holding); 
 		//	bacnet_Analog_Input_Present_Value_Set(2, holding); 
 			add_to_list(tab_reg[i]);
-          	//      pthread_create(&print_thread, NULL, print_func, NULL);
-          	//      bacnet_Analog_Input_Present_Value_Set(0, holding);
-                	printf("holding %d\n", holding);
+          		//add_to_list(tab_reg[1]);
+			//add_to_list(tab_reg[2]);
+			  	printf("holding %d\n", holding);
                  	//****    causing the program to stop!!!  
 			//list_flush();
-                	//add_to_list(tab_reg[0]);
-               		//add_to_list(tab_reg[0]);
+                	
                 	printf("after list flush\n");
-                	//add_to_list(tab_reg[1]);
-                	//add_to_list(tab_reg[2]);
+                	
+                	
         	}
 		fflush(stdout);
 	//	modbus_close(ctx);
