@@ -79,6 +79,7 @@ static uint16_t tab_reg[3] = {};
 int errno;
 int i;
 int rc;
+modbus_t *ctx;
 
 typedef struct s_word_object word_object;
 struct s_word_object {
@@ -179,12 +180,12 @@ static int Update_Analog_Input_Read_Property(
      *     Second argument: data to be sent
      *
      * Without reconfiguring libbacnet, a maximum of 4 values may be sent */
-       sleep(.2);
-	//bacnet_Analog_Input_Present_Value_Set(0, holding);
+       sleep(.8);
+	bacnet_Analog_Input_Present_Value_Set(0, holding);
         printf("HOLDING: %X\n", holding);
     //bacnet_Analog_Input_Present_Value_Set(0, test_data[index++]);
-     //bacnet_Analog_Input_Present_Value_Set(1, tab_reg[0]);
-    /* bacnet_Analog_Input_Present_Value_Set(2, test_data[index++]); */
+     bacnet_Analog_Input_Present_Value_Set(1, tab_reg[1]);
+     bacnet_Analog_Input_Present_Value_Set(2, tab_reg[2]); 
     
     if (index == NUM_TEST_DATA) index = 0;
 
@@ -296,9 +297,38 @@ static void *second_tick(void *arg) {
 }
 
 static void *modbus_func(void *arg) {
-
-
-	printf("in modbus thread\n");}
+	
+	//sleep(.1);
+	ctx = modbus_new_tcp("140.159.153.159", MODBUS_TCP_DEFAULT_PORT); //using VU modbus
+	//ctx = modbus_new_tcp("127.0.0.1", MODBUS_TCP_DEFAULT_PORT);// using testbench from home
+	//ctx = modbus_new_tcp("127.0.0.1", 0xBAC0); //old testbench
+	if (modbus_connect(ctx) == -1){
+		fprintf(stderr, "Connection failed: %s\n", modbus_strerror(errno));
+		modbus_free(ctx);
+		//return -1;  //causing warnings *****
+	}
+	printf("conection not failed\n");
+	//rc = modbus_read_registers(ctx, 0, 33, tab_reg);
+	//rc = modbus_read_registers(ctx, 0, 3, tab_reg); // was used for initial modbus testbench
+	if (rc == -1){
+		if (EMBMDATA==1){printf("too many requests\n");}
+		printf("not able to read register\n");
+		fprintf(stderr, "%s\n", modbus_strerror(errno));
+		//return -1;   // causing warnings *****
+	}
+	while(1){
+		rc = modbus_read_registers(ctx, 30, 3, tab_reg);
+		printf("in modbus thread\n");
+		for (i=0; i < rc; i++){
+			sleep(1);
+			printf("rc = %d\n",rc);
+			printf("reg[%d]=%d (0x%X)\n", i, tab_reg[i], tab_reg[i]);
+			add_to_list(tab_reg[0]);
+			sleep(.5);
+		}
+	sleep(1);
+	}
+}
 
 
 static void ms_tick(void) {
@@ -319,6 +349,7 @@ static void ms_tick(void) {
 
 int main(int argc, char **argv) {
 	printf("in function main\n"); //for diagnostics
+	
 	char input_word[256];
 	int c;
 	int option_index = 0;
@@ -354,25 +385,7 @@ int main(int argc, char **argv) {
     	pthread_create(&print_thread, NULL, print_func, NULL);
 	pthread_create(&modbus0, 0, modbus_func, NULL);
 
-	modbus_t *ctx;
-	//sleep(.1);
-	ctx = modbus_new_tcp("140.159.153.159", MODBUS_TCP_DEFAULT_PORT); //using VU modbus
-	//ctx = modbus_new_tcp("127.0.0.1", MODBUS_TCP_DEFAULT_PORT);// using testbench from home
-	//ctx = modbus_new_tcp("127.0.0.1", 0xBAC0); //old testbench
-	if (modbus_connect(ctx) == -1){
-		fprintf(stderr, "Connection failed: %s\n", modbus_strerror(errno));
-		modbus_free(ctx);
-		return -1;
-	}
-	printf("conection not failed\n");
-	//rc = modbus_read_registers(ctx, 0, 33, tab_reg);
-	//rc = modbus_read_registers(ctx, 0, 3, tab_reg); // was used for initial modbus testbench
-	if (rc == -1){
-		if (EMBMDATA==1){printf("too many requests\n");}
-		printf("not able to read register\n");
-		fprintf(stderr, "%s\n", modbus_strerror(errno));
-		return -1;
-	}
+
     /* Start another thread here to retrieve your allocated registers from the
      * modbus server. This thread should have the following structure (in a
      * separate function):
@@ -388,7 +401,7 @@ int main(int argc, char **argv) {
     	while (1) {
 		pdu_len = bacnet_datalink_receive(
 		    &src, rx_buf, bacnet_MAX_MPDU, BACNET_SELECT_TIMEOUT_MS);
-#if 0
+
 		if (pdu_len) {
 	    	/* May call any registered handler.
 	     	* Thread safety: May block, however we still need to guarantee
@@ -398,52 +411,10 @@ int main(int argc, char **argv) {
 	    		pthread_mutex_unlock(&timer_lock);
 	
 		}
-#endif
-		rc = modbus_read_registers(ctx, 30, 3, tab_reg);
+		//add_to_list(tab_reg[0]);
 		ms_tick();
-		for (i=0; i < rc; i++){
-			sleep(1);
-			printf("rc = %d\n",rc);
-			printf("reg[%d]=%d (0x%X)\n", i, tab_reg[i], tab_reg[i]);
-	 		
-	  		//add_to_list(tab_reg[i]); // was used for testbench modbus server
-	 		
-                       
 
-		       	pdu_len = bacnet_datalink_receive(
-			&src, rx_buf, bacnet_MAX_MPDU, BACNET_SELECT_TIMEOUT_MS);
-
-			if (pdu_len) {
-	    			/* May call any registered handler.
-	     			* Thread safety: May block, however we still need to guarantee
-	     			* atomicity with the timers, so hold the lock anyway */
-	    			pthread_mutex_lock(&timer_lock);
-	    			bacnet_npdu_handler(&src, rx_buf, pdu_len);
-	    			pthread_mutex_unlock(&timer_lock);
-	
-			}
-
-
-			//if (pdu_len) bacnet_npdu_handler(&src, rx_buf, pdu_len);
-			//ms_tick();
-			printf("register number %d\n",i);
-			//add_to_list(tab_reg[1]);
-			printf("holding before bacnet number %d\n",holding);
-			//bacnet_Analog_Input_Present_Value_Set(0, holding); //from thread list
-                	//bacnet_Analog_Input_Present_Value_Set(2, holding); 
-		//	bacnet_Analog_Input_Present_Value_Set(2, holding); 
-			add_to_list(tab_reg[0]);
-          		//add_to_list(tab_reg[1]);
-			//add_to_list(tab_reg[2]);
-			printf("holding %d\n", holding);
-                 	//****    causing the program to stop!!!  
-			//list_flush();
-                	
-                	printf("after list flush\n");
-                	
-                	
-        	}
-    }
+	 }
 
     return 0;
 }
