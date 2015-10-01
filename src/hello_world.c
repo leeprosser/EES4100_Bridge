@@ -87,12 +87,13 @@ struct s_word_object {
 	word_object *next;
 };	
 
-static word_object *list_head;
+#define NUM_CHANNELS 3
+static word_object *list_heads[NUM_CHANNELS];
 static pthread_mutex_t list_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t list_data_ready = PTHREAD_COND_INITIALIZER;
 static pthread_cond_t list_data_flush = PTHREAD_COND_INITIALIZER;
 
-static void add_to_list(uint16_t word) {
+static void add_to_list(word_object **list_head, uint16_t word) {
 	word_object *last_object, *tmp_object;
  	int16_t tmp_string;
  	tmp_object = malloc(sizeof(word_object));
@@ -100,12 +101,12 @@ static void add_to_list(uint16_t word) {
  	tmp_object->word = tmp_string;
   	tmp_object->next = NULL;
 	pthread_mutex_lock(&list_lock);
-	if (list_head == NULL) {
-		list_head = tmp_object;
+	if (*list_head == NULL) {
+		*list_head = tmp_object;
  	} 
 	else{
 /* Iterate through the linked list to find the last object */
-		last_object = list_head;
+		last_object = *list_head;
 		while (last_object->next){
 			last_object = last_object->next;
 		}
@@ -116,23 +117,24 @@ static void add_to_list(uint16_t word) {
 	pthread_cond_signal(&list_data_ready);
 }
 
-static word_object *list_get_first(void) {
+static word_object *list_get_first(word_object **list_head) {
 	word_object *first_object;
-	first_object = list_head;
-	list_head = list_head->next;
+	first_object = *list_head;
+	*list_head = (*list_head)->next;
 	return first_object;
 }
 
 static void *print_func(void *arg) {
+	word_object **list_head = (word_object **) arg;
 	word_object *current_object;
-	printf("in print func\n");
+	printf("in print func2\n");
 	fprintf(stderr, "Print thr starting\n");
 	while(1) {
 		pthread_mutex_lock(&list_lock);
-		while (list_head == NULL) {
+		while (*list_head == NULL) {
 			pthread_cond_wait(&list_data_ready, &list_lock);
 		}
-		current_object = list_get_first();
+		current_object = list_get_first(list_head);
 		pthread_mutex_unlock(&list_lock);
 		printf("Print thread: %d\n", current_object->word);
 		holding =  current_object->word;  // the thread is passed to bacnet server via 'holding' variable
@@ -146,7 +148,7 @@ static void *print_func(void *arg) {
 	//return arg;
 }
 
-static void list_flush(void) {
+static void list_flush(word_object *list_head) {
 	pthread_mutex_lock(&list_lock);
 	while (list_head != NULL) {
 		pthread_cond_signal(&list_data_ready);
@@ -170,6 +172,9 @@ static int Update_Analog_Input_Read_Property(
 		BACNET_READ_PROPERTY_DATA *rpdata) {
 
     static int index;
+    int instance = Analog_Input_Instance_To_Index(rpdata->object_instance);
+
+    printf("Request for instance %i\n", instance);
 
     /* Update the values to be sent to the BACnet client here.
      * The data should be read from the tail of a linked list. You are required
@@ -180,9 +185,10 @@ static int Update_Analog_Input_Read_Property(
      *     Second argument: data to be sent
      *
      * Without reconfiguring libbacnet, a maximum of 4 values may be sent */
-       sleep(.8);
-	bacnet_Analog_Input_Present_Value_Set(0, holding);
-        printf("HOLDING: %X\n", holding);
+       	//sleep(.8);
+	bacnet_Analog_Input_Present_Value_Set(0, tab_reg[0]);
+        //sleep(.2);
+	printf("HOLDING: %X\n", holding);
     //bacnet_Analog_Input_Present_Value_Set(0, test_data[index++]);
      bacnet_Analog_Input_Present_Value_Set(1, tab_reg[1]);
      bacnet_Analog_Input_Present_Value_Set(2, tab_reg[2]); 
@@ -299,8 +305,8 @@ static void *second_tick(void *arg) {
 static void *modbus_func(void *arg) {
 	
 	//sleep(.1);
-	ctx = modbus_new_tcp("140.159.153.159", MODBUS_TCP_DEFAULT_PORT); //using VU modbus
-	//ctx = modbus_new_tcp("127.0.0.1", MODBUS_TCP_DEFAULT_PORT);// using testbench from home
+	//ctx = modbus_new_tcp("140.159.153.159", MODBUS_TCP_DEFAULT_PORT); //using VU modbus
+	ctx = modbus_new_tcp("127.0.0.1", MODBUS_TCP_DEFAULT_PORT);// using testbench from home
 	//ctx = modbus_new_tcp("127.0.0.1", 0xBAC0); //old testbench
 	if (modbus_connect(ctx) == -1){
 		fprintf(stderr, "Connection failed: %s\n", modbus_strerror(errno));
@@ -320,13 +326,15 @@ static void *modbus_func(void *arg) {
 		rc = modbus_read_registers(ctx, 30, 3, tab_reg);
 		printf("in modbus thread\n");
 		for (i=0; i < rc; i++){
-			sleep(1);
+			//sleep(1);
 			printf("rc = %d\n",rc);
 			printf("reg[%d]=%d (0x%X)\n", i, tab_reg[i], tab_reg[i]);
-			add_to_list(tab_reg[0]);
-			sleep(.5);
+			add_to_list(&list_heads[0], tab_reg[0]);
+			add_to_list(&list_heads[1], tab_reg[1]);
+			//sleep(.5);
 		}
-	sleep(1);
+	//sleep(1);
+	usleep(600000);
 	}
 }
 
@@ -382,7 +390,7 @@ int main(int argc, char **argv) {
 
     	pthread_create(&minute_tick_id, 0, minute_tick, NULL);
     	pthread_create(&second_tick_id, 0, second_tick, NULL);
-    	pthread_create(&print_thread, NULL, print_func, NULL);
+    	pthread_create(&print_thread, NULL, print_func, &list_heads[0]);
 	pthread_create(&modbus0, 0, modbus_func, NULL);
 
 
