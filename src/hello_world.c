@@ -304,13 +304,16 @@ static void *second_tick(void *arg) {
 
 static void *modbus_func(void *arg) {
 	
-	//sleep(.1);
+	modbus_start:
+	printf("ONLY HERE AT START MODBUS\n");
 	//ctx = modbus_new_tcp("140.159.153.159", MODBUS_TCP_DEFAULT_PORT); //using VU modbus
 	ctx = modbus_new_tcp("127.0.0.1", MODBUS_TCP_DEFAULT_PORT);// using testbench from home
 	//ctx = modbus_new_tcp("127.0.0.1", 0xBAC0); //old testbench
 	if (modbus_connect(ctx) == -1){
 		fprintf(stderr, "Connection failed: %s\n", modbus_strerror(errno));
 		modbus_free(ctx);
+		sleep(1);
+		goto modbus_start;
 		//return -1;  //causing warnings *****
 	}
 	printf("conection not failed\n");
@@ -320,6 +323,7 @@ static void *modbus_func(void *arg) {
 		if (EMBMDATA==1){printf("too many requests\n");}
 		printf("not able to read register\n");
 		fprintf(stderr, "%s\n", modbus_strerror(errno));
+				
 		//return -1;   // causing warnings *****
 	}
 	while(1){
@@ -333,8 +337,16 @@ static void *modbus_func(void *arg) {
 			add_to_list(&list_heads[1], tab_reg[1]);
 			//sleep(.5);
 		}
-	//sleep(1);
-	usleep(600000);
+		usleep(600000);
+		
+		/* check modbus connect if failed re-establish connection */
+		if (modbus_connect(ctx) == -1){
+			fprintf(stderr, "Connection failed: %s\n", modbus_strerror(errno));
+			modbus_free(ctx);
+			sleep(1);
+			goto modbus_start;
+		}
+ 
 	}
 }
 
