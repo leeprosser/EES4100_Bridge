@@ -76,11 +76,15 @@ int i;
 int rc;
 modbus_t *ctx;
 
+
+
 typedef struct s_word_object word_object;
 struct s_word_object {
         uint16_t word;
 	word_object *next;
 };	
+
+//static word_object **list_head = (word_object **)
 
 
 #define NUM_CHANNELS 3
@@ -180,10 +184,13 @@ static pthread_mutex_t timer_lock = PTHREAD_MUTEX_INITIALIZER;
 static int Update_Analog_Input_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata) {
 
 	static int index;
-    	int instance = Analog_Input_Instance_To_Index(rpdata->object_instance);
-	
-    	printf("Request for instance %i\n", instance);
+    	//word_object *current_object_0, *current_object_1, *current_object_2;
 
+	int instance = Analog_Input_Instance_To_Index(rpdata->object_instance);
+	//current_object_0 = list_get_first(&list_head[0]);
+
+    	//printf("Request for instance %i,%i\n", instance,current_object_0->word);
+	
 
     /* Update the values to be sent to the BACnet client here.
      * The data should be read from the tail of a linked list. You are required
