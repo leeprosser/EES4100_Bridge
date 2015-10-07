@@ -43,9 +43,9 @@
 #include <string.h>
 
 
-#define BACNET_INSTANCE_NO          30
+#define BACNET_INSTANCE_NO          30     // assigned register at VU
 //#define BACNET_INSTANCE_NO          12  // for testing at home
-
+#define INITIAL_TESTING             0     // the initial testing used an array of 'magic' numbers, should be disabled when using modbus input
 
 
 #define BACNET_PORT                 0xBAC1
@@ -55,21 +55,31 @@
 #define BACNET_SELECT_TIMEOUT_MS    1       /* ms */
 
 
-
 #define RUN_AS_BBMD_CLIENT          1
+
 
 #if RUN_AS_BBMD_CLIENT
 #define BACNET_BBMD_PORT            0xBAC0      //BBMD broadcast management device
 //#define BACNET_BBMD_ADDRESS         "127.255.255.255"
-#define BACNET_BBMD_ADDRESS         "127.0.0.1"     
-//#define BACNET_BBMD_ADDRESS         "140.159.160.7"   // VU bacnet server
+
+/* if using bacnet_client Testbench on laptop */
+#define BACNET_BBMD_ADDRESS         "127.0.0.1" 
+/* if using bacnet_client at VU */
+//#define BACNET_BBMD_ADDRESS         "140.159.160.7" 
+
 #define BACNET_BBMD_TTL             90          //BBMD broadcast management device time to live
 #endif
+
+/* if using modbus_server Testbench on laptop */
+#define MODBUS_IP_ADDRESS           "127.0.0.1"
+/* if using modbus_server at VU */
+//#define MODBUS_IP_ADDRESS           "140.159.153.159"
+
+
 
 
 
 uint16_t holding[3]; // the variable that is passed from the thread 
-//int16_t tab_reg[64]; // was used in modbus testbench
 static uint16_t tab_reg[3] = {};
 int errno;
 int i;
@@ -77,14 +87,12 @@ int rc;
 modbus_t *ctx;
 
 
-
+/* node structure used for the linked list */
 typedef struct s_word_object word_object;
 struct s_word_object {
         uint16_t word;
 	word_object *next;
 };	
-
-//static word_object **list_head = (word_object **)
 
 
 #define NUM_CHANNELS 3
@@ -104,7 +112,6 @@ static void add_to_list(word_object **list_head, uint16_t word) {
 	pthread_mutex_lock(&list_lock);
 	if (*list_head == NULL) { //if the list head is null then the list head is the tmp object
 		*list_head = tmp_object;
-		
 	} 
 	else{
 /* Iterate through the linked list to find the last object */
@@ -126,38 +133,7 @@ static word_object *list_get_first(word_object **list_head) {
 	return first_object;
 }
 
-#if 0
-static void *print_func(void *arg) {
-	word_object **list_head = (word_object **) arg;
-	word_object *current_object_0, *current_object_1, *current_object_2;
-	fprintf(stderr, "Print thr starting\n");
-	while(1){		
-		pthread_mutex_lock(&list_lock);
-		while (*list_head == NULL) {
-			pthread_cond_wait(&list_data_ready, &list_lock);
-		}	
-		current_object_0 = list_get_first(&list_head[0]);
-		current_object_1 = list_get_first(&list_head[1]);
-		current_object_2 = list_get_first(&list_head[2]);
-		pthread_mutex_unlock(&list_lock);
-		holding[0] =  current_object_0->word;  // the thread is passed to bacnet server via 'holding' variable
-		holding[1] = current_object_1->word; 
-		holding[2] = current_object_2->word;
-		printf("holding in function %d\n" , holding[0]); // for diagnostics
-		printf("holding in function %d\n" , holding[1]);
-		printf("holding in function %d\n" , holding[2]);
-		free(current_object_0);
-		free(current_object_1);
-		free(current_object_2);
-		pthread_cond_signal(&list_data_flush);
-				
-		//break;
-	}
-	
-	//return arg;
-}
-
-#endif 
+ 
 static void list_flush(word_object *list_head) {
 	pthread_mutex_lock(&list_lock);
 	while (list_head != NULL) {
@@ -172,66 +148,41 @@ static void list_flush(word_object *list_head) {
  * BACnet client will print "Successful match" whenever it is able to receive
  * this set of data. Note that you will not have access to the RANDOM_DATA_POOL
  * for your final submitted application. */
+
+#if INITIAL_TESTING
+/* Only needed for initial testing! */
+
 static uint16_t test_data[] = {
     0xA4EC, 0x6E39, 0x8740, 0x1065, 0x9134, 0xFC8C };
 #define NUM_TEST_DATA (sizeof(test_data)/sizeof(test_data[0]))
 
+#endif
+
 static pthread_mutex_t timer_lock = PTHREAD_MUTEX_INITIALIZER;
-
-
 
 
 static int Update_Analog_Input_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata) {
 
-	static int index;
-    	word_object *current_object_0, *current_object_1, *current_object_2;
-
+#if INITIAL_TESTING
+	static int index;    /* only need for initial testing */
+#endif
+	word_object *current_object_0;
 	int instance = Analog_Input_Instance_To_Index(rpdata->object_instance);
+	
 	if (rpdata->object_property != bacnet_PROP_PRESENT_VALUE) goto not_pv;
-	 
-			
-		printf("A\n");
-		pthread_mutex_lock(&list_lock);
-		printf("B\n");
-		if(list_heads[instance] == NULL){
-			pthread_mutex_unlock(&list_lock);
-			goto not_pv;
-		}
-		current_object_0 = list_get_first(&list_heads[instance]);
+	pthread_mutex_lock(&list_lock);
+	if(list_heads[instance] == NULL){
 		pthread_mutex_unlock(&list_lock);
-		printf("C\n");
-		holding[instance] =  current_object_0->word;
-		printf("D\n");
-		free(current_object_0);
-		printf("E\n");
-		printf("F\n");
-		bacnet_Analog_Input_Present_Value_Set(instance, holding[instance]);
-		printf("G\n");
-#if 0
-	if(instance ==1){
-		pthread_mutex_lock(&list_lock);
-		current_object_1 = list_get_first(&list_heads[1]);
-	   	holding[1] =  current_object_1->word;
-	 	free(current_object_1);
-	  	pthread_mutex_unlock(&list_lock);
-		bacnet_Analog_Input_Present_Value_Set(instance, holding[1]);
+		goto not_pv;
 	}
-#endif
-#if 0	
-	 if(instance ==2){
-	 	pthread_mutex_lock(&list_lock);
-		current_object_2 = list_get_first(&list_heads[2]);
-		holding[2] =  current_object_2->word;
-		free(current_object_2);
-		pthread_mutex_unlock(&list_lock);
-		bacnet_Analog_Input_Present_Value_Set(instance, holding[2]);
-	}
-#endif
+	current_object_0 = list_get_first(&list_heads[instance]);
+	pthread_mutex_unlock(&list_lock);
+	holding[instance] =  current_object_0->word;
+	free(current_object_0);
+	bacnet_Analog_Input_Present_Value_Set(instance, holding[instance]);
 	
-	printf("HOLDING in function %d\n" , holding[instance]); 
-    	//printf("HOLDING in function %d\n" , holding[1]); 
-	//printf("Request for instance %i,%i\n", instance,current_object_0->word);
-	
+	printf("HOLDING: %d INSTANCE: %d\n" , holding[instance],instance); //for diagnostics 
+    		
 
     /* Update the values to be sent to the BACnet client here.
      * The data should be read from the tail of a linked list. You are required
@@ -243,15 +194,12 @@ static int Update_Analog_Input_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata) 
      *
      * Without reconfiguring libbacnet, a maximum of 4 values may be sent */
        	
-	
-	//bacnet_Analog_Input_Present_Value_Set(instance, holding[instance]);
-        //sleep(.2);
-	printf("HOLDING: %d\n", holding[0]);
-    //bacnet_Analog_Input_Present_Value_Set(0, test_data[index++]);
-     //	bacnet_Analog_Input_Present_Value_Set(1, tab_reg[1]);
-     //	bacnet_Analog_Input_Present_Value_Set(2, tab_reg[2]); 
-    	
-    	if (index == NUM_TEST_DATA) index = 0;
+#if INITIAL_TESTING	
+	bacnet_Analog_Input_Present_Value_Set(0, test_data[index++]);
+
+     	if (index == NUM_TEST_DATA) index = 0;
+#endif
+
 	not_pv:
     	return bacnet_Analog_Input_Read_Property(rpdata);
 }
@@ -367,7 +315,7 @@ static void *modbus_func(void *arg) {
 	modbus_start:
 	printf("ONLY HERE AT START MODBUS\n");
 	//ctx = modbus_new_tcp("140.159.153.159", MODBUS_TCP_DEFAULT_PORT); //using VU modbus
-	ctx = modbus_new_tcp("127.0.0.1", MODBUS_TCP_DEFAULT_PORT);// using testbench from home
+	ctx = modbus_new_tcp(MODBUS_IP_ADDRESS , MODBUS_TCP_DEFAULT_PORT);// using testbench from home
 	//ctx = modbus_new_tcp("127.0.0.1", 0xBAC0); //old testbench
 	if (modbus_connect(ctx) == -1){
 		fprintf(stderr, "Connection failed: %s\n", modbus_strerror(errno));
@@ -396,7 +344,7 @@ static void *modbus_func(void *arg) {
 
 		
 		}
-		usleep(600000);
+		usleep(100000);
 		
 		/* check modbus connect if failed re-establish connection */
 		if (rc == -1){
@@ -461,8 +409,7 @@ int main(int argc, char **argv) {
     	pthread_create(&minute_tick_id, 0, minute_tick, NULL);
     	pthread_create(&second_tick_id, 0, second_tick, NULL);
     	pthread_create(&modbus0, 0, modbus_func, NULL);
-	//pthread_create(&print_thread, NULL, print_func, &list_heads[0]);
-	
+		
 
 
     /* Start another thread here to retrieve your allocated registers from the
