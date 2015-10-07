@@ -88,13 +88,13 @@ struct s_word_object {
 
 
 #define NUM_CHANNELS 3
-
 static word_object *list_heads[NUM_CHANNELS];
 static pthread_mutex_t list_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t list_data_ready = PTHREAD_COND_INITIALIZER;
 static pthread_cond_t list_data_flush = PTHREAD_COND_INITIALIZER;
 
 static void add_to_list(word_object **list_head, uint16_t word) {
+	printf("ADD TO LIST\n");
 	word_object *last_object, *tmp_object;
  	int16_t tmp_string;
  	tmp_object = malloc(sizeof(word_object)); //create the node tmp object
@@ -104,8 +104,8 @@ static void add_to_list(word_object **list_head, uint16_t word) {
 	pthread_mutex_lock(&list_lock);
 	if (*list_head == NULL) { //if the list head is null then the list head is the tmp object
 		*list_head = tmp_object;
-		printf("list head ==null\n");
- 	} 
+		
+	} 
 	else{
 /* Iterate through the linked list to find the last object */
 		last_object = *list_head;
@@ -126,7 +126,7 @@ static word_object *list_get_first(word_object **list_head) {
 	return first_object;
 }
 
-
+#if 0
 static void *print_func(void *arg) {
 	word_object **list_head = (word_object **) arg;
 	word_object *current_object_0, *current_object_1, *current_object_2;
@@ -137,12 +137,12 @@ static void *print_func(void *arg) {
 			pthread_cond_wait(&list_data_ready, &list_lock);
 		}	
 		current_object_0 = list_get_first(&list_head[0]);
-		//current_object_1 = list_get_first(&list_head[1]);
-		//current_object_2 = list_get_first(&list_head[2]);
+		current_object_1 = list_get_first(&list_head[1]);
+		current_object_2 = list_get_first(&list_head[2]);
 		pthread_mutex_unlock(&list_lock);
 		holding[0] =  current_object_0->word;  // the thread is passed to bacnet server via 'holding' variable
-		//holding[1] = current_object_1->word; 
-		//holding[2] = current_object_2->word;
+		holding[1] = current_object_1->word; 
+		holding[2] = current_object_2->word;
 		printf("holding in function %d\n" , holding[0]); // for diagnostics
 		printf("holding in function %d\n" , holding[1]);
 		printf("holding in function %d\n" , holding[2]);
@@ -157,7 +157,7 @@ static void *print_func(void *arg) {
 	//return arg;
 }
 
-
+#endif 
 static void list_flush(word_object *list_head) {
 	pthread_mutex_lock(&list_lock);
 	while (list_head != NULL) {
@@ -184,12 +184,53 @@ static pthread_mutex_t timer_lock = PTHREAD_MUTEX_INITIALIZER;
 static int Update_Analog_Input_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata) {
 
 	static int index;
-    	//word_object *current_object_0, *current_object_1, *current_object_2;
+    	word_object *current_object_0, *current_object_1, *current_object_2;
 
 	int instance = Analog_Input_Instance_To_Index(rpdata->object_instance);
-	//current_object_0 = list_get_first(&list_head[0]);
-
-    	//printf("Request for instance %i,%i\n", instance,current_object_0->word);
+	if (rpdata->object_property != bacnet_PROP_PRESENT_VALUE) goto not_pv;
+	 
+			
+		printf("A\n");
+		pthread_mutex_lock(&list_lock);
+		printf("B\n");
+		if(list_heads[instance] == NULL){
+			pthread_mutex_unlock(&list_lock);
+			goto not_pv;
+		}
+		current_object_0 = list_get_first(&list_heads[instance]);
+		pthread_mutex_unlock(&list_lock);
+		printf("C\n");
+		holding[instance] =  current_object_0->word;
+		printf("D\n");
+		free(current_object_0);
+		printf("E\n");
+		printf("F\n");
+		bacnet_Analog_Input_Present_Value_Set(instance, holding[instance]);
+		printf("G\n");
+#if 0
+	if(instance ==1){
+		pthread_mutex_lock(&list_lock);
+		current_object_1 = list_get_first(&list_heads[1]);
+	   	holding[1] =  current_object_1->word;
+	 	free(current_object_1);
+	  	pthread_mutex_unlock(&list_lock);
+		bacnet_Analog_Input_Present_Value_Set(instance, holding[1]);
+	}
+#endif
+#if 0	
+	 if(instance ==2){
+	 	pthread_mutex_lock(&list_lock);
+		current_object_2 = list_get_first(&list_heads[2]);
+		holding[2] =  current_object_2->word;
+		free(current_object_2);
+		pthread_mutex_unlock(&list_lock);
+		bacnet_Analog_Input_Present_Value_Set(instance, holding[2]);
+	}
+#endif
+	
+	printf("HOLDING in function %d\n" , holding[instance]); 
+    	//printf("HOLDING in function %d\n" , holding[1]); 
+	//printf("Request for instance %i,%i\n", instance,current_object_0->word);
 	
 
     /* Update the values to be sent to the BACnet client here.
@@ -203,15 +244,15 @@ static int Update_Analog_Input_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata) 
      * Without reconfiguring libbacnet, a maximum of 4 values may be sent */
        	
 	
-	bacnet_Analog_Input_Present_Value_Set(0, holding[0]);
+	//bacnet_Analog_Input_Present_Value_Set(instance, holding[instance]);
         //sleep(.2);
-	printf("HOLDING: %X\n", holding[0]);
+	printf("HOLDING: %d\n", holding[0]);
     //bacnet_Analog_Input_Present_Value_Set(0, test_data[index++]);
-     	bacnet_Analog_Input_Present_Value_Set(1, tab_reg[1]);
-     	bacnet_Analog_Input_Present_Value_Set(2, tab_reg[2]); 
-    
+     //	bacnet_Analog_Input_Present_Value_Set(1, tab_reg[1]);
+     //	bacnet_Analog_Input_Present_Value_Set(2, tab_reg[2]); 
+    	
     	if (index == NUM_TEST_DATA) index = 0;
-
+	not_pv:
     	return bacnet_Analog_Input_Read_Property(rpdata);
 }
 
@@ -351,16 +392,14 @@ static void *modbus_func(void *arg) {
 			//sleep(1);
 			printf("rc = %d\n",rc);
 			printf("reg[%d]=%d (0x%X)\n", i, tab_reg[i], tab_reg[i]);
-			add_to_list(&list_heads[0], tab_reg[0]);
-			add_to_list(&list_heads[1], tab_reg[1]);
-			add_to_list(&list_heads[2], tab_reg[2]);
+			add_to_list(&list_heads[i], tab_reg[i]);
 
 		
 		}
 		usleep(600000);
 		
 		/* check modbus connect if failed re-establish connection */
-		if (modbus_connect(ctx) == -1){
+		if (rc == -1){
 			fprintf(stderr, "Connection failed: %s\n", modbus_strerror(errno));
 			modbus_free(ctx);
 			sleep(1);
@@ -422,7 +461,7 @@ int main(int argc, char **argv) {
     	pthread_create(&minute_tick_id, 0, minute_tick, NULL);
     	pthread_create(&second_tick_id, 0, second_tick, NULL);
     	pthread_create(&modbus0, 0, modbus_func, NULL);
-	pthread_create(&print_thread, NULL, print_func, &list_heads[0]);
+	//pthread_create(&print_thread, NULL, print_func, &list_heads[0]);
 	
 
 
@@ -438,7 +477,7 @@ int main(int argc, char **argv) {
      *	    Store the register data into a linked list 
      */
 
-    	while (1) {
+         	while (1) {
 		pdu_len = bacnet_datalink_receive(
 		    &src, rx_buf, bacnet_MAX_MPDU, BACNET_SELECT_TIMEOUT_MS);
 
@@ -452,10 +491,11 @@ int main(int argc, char **argv) {
 	    		pthread_mutex_unlock(&timer_lock);
 	
 		}
-		//add_to_list(tab_reg[0]);
+ 		//add_to_list(tab_reg[0]);
 		ms_tick();
 
 	 }
+
 
     return 0;
 }
