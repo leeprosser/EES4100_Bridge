@@ -63,17 +63,17 @@
 //#define BACNET_BBMD_ADDRESS         "127.255.255.255"
 
 /* if using bacnet_client Testbench on laptop */
-#define BACNET_BBMD_ADDRESS         "127.0.0.1" 
+//#define BACNET_BBMD_ADDRESS         "127.0.0.1" 
 /* if using bacnet_client at VU */
-//#define BACNET_BBMD_ADDRESS         "140.159.160.7" 
+#define BACNET_BBMD_ADDRESS         "140.159.160.7" 
 
 #define BACNET_BBMD_TTL             90          //BBMD broadcast management device time to live
 #endif
 
 /* if using modbus_server Testbench on laptop */
-#define MODBUS_IP_ADDRESS           "127.0.0.1"
+//#define MODBUS_IP_ADDRESS           "127.0.0.1"
 /* if using modbus_server at VU */
-//#define MODBUS_IP_ADDRESS           "140.159.153.159"
+#define MODBUS_IP_ADDRESS           "140.159.153.159"
 
 
 
