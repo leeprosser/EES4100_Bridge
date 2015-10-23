@@ -1,3 +1,3 @@
 This project has been developed as part of the assessment for an undergraduate course.  
 
-The project requires the reading in of a dataset from a modbus server.  The bacnet_server (this project) puts the data stream in a linked list.  the linked list is then sent to the bacnet_client when a read request is made from a bacnet_client.
+The project requires the reading in of a dataset from a modbus server.  The bacnet_server (this project) puts the data stream in a linked list(for dynamic data storage).  The data from the linked list is passed to the bacnet_client when a read request is made from a bacnet_client.
