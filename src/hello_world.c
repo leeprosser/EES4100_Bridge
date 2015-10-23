@@ -314,15 +314,13 @@ static void *modbus_func(void *arg) {
 	
 	modbus_start:
 	printf("ONLY HERE AT START MODBUS\n");
-	//ctx = modbus_new_tcp("140.159.153.159", MODBUS_TCP_DEFAULT_PORT); //using VU modbus
-	ctx = modbus_new_tcp(MODBUS_IP_ADDRESS , MODBUS_TCP_DEFAULT_PORT);// using testbench from home
-	//ctx = modbus_new_tcp("127.0.0.1", 0xBAC0); //old testbench
+	ctx = modbus_new_tcp(MODBUS_IP_ADDRESS , MODBUS_TCP_DEFAULT_PORT);// port set with #define
 	if (modbus_connect(ctx) == -1){
 		fprintf(stderr, "Connection failed: %s\n", modbus_strerror(errno));
 		modbus_free(ctx);
 		sleep(1);
 		goto modbus_start;
-		//return -1;  //causing warnings *****
+		
 	}
 	printf("conection not failed\n");
 	//rc = modbus_read_registers(ctx, 0, 33, tab_reg);
@@ -332,7 +330,7 @@ static void *modbus_func(void *arg) {
 		printf("not able to read register\n");
 		fprintf(stderr, "%s\n", modbus_strerror(errno));
 				
-		//return -1;   // causing warnings *****
+		
 	}
 	while(1){
 		rc = modbus_read_registers(ctx, 30, 3, tab_reg);
