@@ -329,7 +329,7 @@ static void *modbus_func(void *arg) {
 		if (EMBMDATA==1){printf("too many requests\n");}
 		printf("not able to read register\n");
 		fprintf(stderr, "%s\n", modbus_strerror(errno));
-				
+		goto modbus_start;		
 		
 	}
 	while(1){
